@@ -109,11 +109,31 @@ void drawBubbles(){
         glTranslatef(pos1X, pos1Y,0);
         drawCircle(smallRadius,20, 1, 100, 0);
         glColor3f(1,1,1);
+        double balh = 1;
+        double peakX = balh*radiusLineScaleFactor*vec1X;
+        double peakY = balh*radiusLineScaleFactor*vec1Y;
+        double r_perp_X = -vec1Y;
+        double r_perp_Y = vec1X;
+        double val = 5.5;
+        double rX = (vec1X*cos(val))+(r_perp_X*sin(val));
+        double rY = (vec1Y*cos(val))+(r_perp_Y*sin(val));
+
+        double r2_perp_X = vec1Y;
+        double r2_perp_Y = -vec1X;
+        double r2X = (vec1X*cos(val))+(r2_perp_X*sin(val));
+        double r2Y = (vec1Y*cos(val))+(r2_perp_Y*sin(val));
+
+
+
+
         glBegin(GL_LINES);
             glVertex2f(0,0);
-            double bal = 1;
-            glVertex2f(bal*radiusLineScaleFactor*vec1X,bal*radiusLineScaleFactor*vec1Y);
+            glVertex2f(peakX,peakY);
         glEnd();
+
+
+
+        drawTriangle(peakX,peakY, val*rX,val*rY,val*r2X,val*r2Y);
     }glPopMatrix();
 
 
@@ -121,20 +141,31 @@ void drawBubbles(){
         glTranslatef(pos2X, pos2Y,0);
         drawCircle(smallRadius,20, 0, 1 , 0);
         glColor3f(1,1,1);
+        double balh = 1;
+        double peakX = balh*radiusLineScaleFactor*vec2X;
+        double peakY = balh*radiusLineScaleFactor*vec2Y;
+        double r_perp_X = -vec2Y;
+        double r_perp_Y = vec2X;
+        double val = 5.5;
+        double rX = (vec2X*cos(val))+(r_perp_X*sin(val));
+        double rY = (vec2Y*cos(val))+(r_perp_Y*sin(val));
+
+        double r2_perp_X = vec2Y;
+        double r2_perp_Y = -vec2X;
+        double r2X = (vec2X*cos(val))+(r2_perp_X*sin(val));
+        double r2Y = (vec2Y*cos(val))+(r2_perp_Y*sin(val));
         glBegin(GL_LINES);
             glVertex2f(0,0);
-            glVertex2f(radiusLineScaleFactor*vec2X,radiusLineScaleFactor*vec2Y);
+            glVertex2f(peakX,peakY);
         glEnd();
+        drawTriangle(peakX,peakY, val*rX,val*rY,val*r2X,val*r2Y);
     }glPopMatrix();
-
-//    drawTriangle(10,10,30,20,40,80);
 }
 
 void keyboardListener(unsigned char key, int x,int y){
 	switch(key){
 
 		case '1':
-			printf("%lf \n", sqrt(vec1X*vec1X + vec1Y*vec1Y));
 			break;
 
 		default:
@@ -321,19 +352,6 @@ void animate(){
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 void init(){
     /** tunable parameters */
     smallRadius = 5;
@@ -355,24 +373,12 @@ void init(){
 
     directionVectorMagnitude = sqrt(vec1X*vec1X + vec1Y*vec1Y);
     radiusLineScaleFactor = smallRadius/directionVectorMagnitude;
-	//clear the screen
+
 	glClearColor(0,0,0,0);
-
-	/************************
-	/ set-up projection here
-	************************/
-	//load the PROJECTION matrix
 	glMatrixMode(GL_PROJECTION);
-
-	//initialize the matrix
 	glLoadIdentity();
-
-	//give PERSPECTIVE parameters
 	gluPerspective(100,	1,	1,	1000.0);
-	//field of view in the Y (vertically)
-	//aspect ratio that determines the field of view in the X direction (horizontally)
-	//near distance
-	//far distance
+
 }
 
 int main(int argc, char **argv){

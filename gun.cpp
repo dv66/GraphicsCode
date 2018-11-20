@@ -13,7 +13,7 @@ int drawgrid;
 int drawaxes;
 double angle;
 
-
+double targetDistance;
 
 
 
@@ -21,9 +21,9 @@ double angle;
 
 
 double rotationAngle;
+double backTotalLength;
 
-
-
+double frontTotalLength;
 
 struct point
 {
@@ -31,11 +31,41 @@ struct point
 };
 
 
+
+
+point bU;
+point bR;
+point bL;
+point fU;
+point fR;
+point fL;
+
+
+point bulletArray[1000];
+int numBullets;
+
+
+
+
+
+
+
+
+
+
+
+
 point currentPosition;
 point uVector;
 point rVector;
 point lVector;
 
+
+
+
+/** to get the bullet position*/
+point point1;
+point point2;
 
 
 
@@ -271,8 +301,187 @@ void tiltClockwise(){
 
 
 
+/**
+gun-back
+*/
+
+void turnLeft(){
+    double tempX = bL.x;
+    double tempY = bL.y;
+    double tempZ = bL.z;
+    double rotSpeed = (1*pi)/180;
+    bL.x = bL.x*cos(rotSpeed)+(-bR.x)*sin(rotSpeed);
+    bL.y = bL.y*cos(rotSpeed)+(-bR.y)*sin(rotSpeed);
+    bL.z = bL.z*cos(rotSpeed)+(-bR.z)*sin(rotSpeed);
+
+    bR.x = bR.x*cos(rotSpeed)+(tempX)*sin(rotSpeed);
+    bR.y = bR.y*cos(rotSpeed)+(tempY)*sin(rotSpeed);
+    bR.z = bR.z*cos(rotSpeed)+(tempZ)*sin(rotSpeed);
+//    printf("U = %lf %lf %lf  -- R = %lf %lf %lf  -- L = %lf %lf %lf\n\n", uVector.x,uVector.y,uVector.z ,rVector.x,rVector.y,rVector.z, lVector.x,lVector.y,lVector.z);
+}
+
+void turnRight(){
+    double tempX = bR.x;
+    double tempY = bR.y;
+    double tempZ = bR.z;
+    double rotSpeed = (1*pi)/180;
+    bR.x = bR.x*cos(rotSpeed)+(-bL.x)*sin(rotSpeed);
+    bR.y = bR.y*cos(rotSpeed)+(-bL.y)*sin(rotSpeed);
+    bR.z = bR.z*cos(rotSpeed)+(-bL.z)*sin(rotSpeed);
+
+    bL.x = bL.x*cos(rotSpeed)+(tempX)*sin(rotSpeed);
+    bL.y = bL.y*cos(rotSpeed)+(tempY)*sin(rotSpeed);
+    bL.z = bL.z*cos(rotSpeed)+(tempZ)*sin(rotSpeed);
+}
+
+void turnUp(){
+    double tempX = bU.x;
+    double tempY = bU.y;
+    double tempZ = bU.z;
+    double rotSpeed = (1*pi)/180;
+    bU.x = bU.x*cos(rotSpeed)+(-bL.x)*sin(rotSpeed);
+    bU.y = bU.y*cos(rotSpeed)+(-bL.y)*sin(rotSpeed);
+    bU.z = bU.z*cos(rotSpeed)+(-bL.z)*sin(rotSpeed);
+
+    bL.x = bL.x*cos(rotSpeed)+(tempX)*sin(rotSpeed);
+    bL.y = bL.y*cos(rotSpeed)+(tempY)*sin(rotSpeed);
+    bL.z = bL.z*cos(rotSpeed)+(tempZ)*sin(rotSpeed);
+}
+
+void turnDown(){
+    double tempX = bL.x;
+    double tempY = bL.y;
+    double tempZ = bL.z;
+    double rotSpeed = (1*pi)/180;
+    bL.x = bL.x*cos(rotSpeed)+(-bU.x)*sin(rotSpeed);
+    bL.y = bL.y*cos(rotSpeed)+(-bU.y)*sin(rotSpeed);
+    bL.z = bL.z*cos(rotSpeed)+(-bU.z)*sin(rotSpeed);
+
+    bU.x = bU.x*cos(rotSpeed)+(tempX)*sin(rotSpeed);
+    bU.y = bU.y*cos(rotSpeed)+(tempY)*sin(rotSpeed);
+    bU.z = bU.z*cos(rotSpeed)+(tempZ)*sin(rotSpeed);
+}
+/**************************************************************************************************************************************************************/
+/**************************************************************************************************************************************************************/
+/**************************************************************************************************************************************************************/
+/**************************************************************************************************************************************************************/
+/**************************************************************************************************************************************************************/
+/**************************************************************************************************************************************************************/
+/**************************************************************************************************************************************************************/
+/**************************************************************************************************************************************************************/
+/**************************************************************************************************************************************************************/
+/**************************************************************************************************************************************************************/
+/**************************************************************************************************************************************************************/
+/**************************************************************************************************************************************************************/
+/**************************************************************************************************************************************************************/
+/**************************************************************************************************************************************************************/
+/**************************************************************************************************************************************************************/
+/**************************************************************************************************************************************************************/
+/**************************************************************************************************************************************************************/
+/**************************************************************************************************************************************************************/
+/**************************************************************************************************************************************************************/
+/**************************************************************************************************************************************************************/
+/**************************************************************************************************************************************************************/
+
+
+/**
+gun-front
+*/
+
+void turnFrontLeft(){
+    double tempX = fL.x;
+    double tempY = fL.y;
+    double tempZ = fL.z;
+    double rotSpeed = (1*pi)/180;
+    fL.x = fL.x*cos(rotSpeed)+(-fR.x)*sin(rotSpeed);
+    fL.y = fL.y*cos(rotSpeed)+(-fR.y)*sin(rotSpeed);
+    fL.z = fL.z*cos(rotSpeed)+(-fR.z)*sin(rotSpeed);
+
+    fR.x = fR.x*cos(rotSpeed)+(tempX)*sin(rotSpeed);
+    fR.y = fR.y*cos(rotSpeed)+(tempY)*sin(rotSpeed);
+    fR.z = fR.z*cos(rotSpeed)+(tempZ)*sin(rotSpeed);
+//    printf("U = %lf %lf %lf  -- R = %lf %lf %lf  -- L = %lf %lf %lf\n\n", uVector.x,uVector.y,uVector.z ,rVector.x,rVector.y,rVector.z, lVector.x,lVector.y,lVector.z);
+}
+
+void turnFrontRight(){
+    double tempX = fR.x;
+    double tempY = fR.y;
+    double tempZ = fR.z;
+    double rotSpeed = (1*pi)/180;
+    fR.x = fR.x*cos(rotSpeed)+(-fL.x)*sin(rotSpeed);
+    fR.y = fR.y*cos(rotSpeed)+(-fL.y)*sin(rotSpeed);
+    fR.z = fR.z*cos(rotSpeed)+(-fL.z)*sin(rotSpeed);
+
+    fL.x = fL.x*cos(rotSpeed)+(tempX)*sin(rotSpeed);
+    fL.y = fL.y*cos(rotSpeed)+(tempY)*sin(rotSpeed);
+    fL.z = fL.z*cos(rotSpeed)+(tempZ)*sin(rotSpeed);
+}
+
+void turnFrontUp(){
+    double tempX = fU.x;
+    double tempY = fU.y;
+    double tempZ = fU.z;
+    double rotSpeed = (1*pi)/180;
+    fU.x = fU.x*cos(rotSpeed)+(-fL.x)*sin(rotSpeed);
+    fU.y = fU.y*cos(rotSpeed)+(-fL.y)*sin(rotSpeed);
+    fU.z = fU.z*cos(rotSpeed)+(-fL.z)*sin(rotSpeed);
+
+    fL.x = fL.x*cos(rotSpeed)+(tempX)*sin(rotSpeed);
+    fL.y = fL.y*cos(rotSpeed)+(tempY)*sin(rotSpeed);
+    fL.z = fL.z*cos(rotSpeed)+(tempZ)*sin(rotSpeed);
+}
+
+void turnFrontDown(){
+    double tempX = fL.x;
+    double tempY = fL.y;
+    double tempZ = fL.z;
+    double rotSpeed = (1*pi)/180;
+    fL.x = fL.x*cos(rotSpeed)+(-fU.x)*sin(rotSpeed);
+    fL.y = fL.y*cos(rotSpeed)+(-fU.y)*sin(rotSpeed);
+    fL.z = fL.z*cos(rotSpeed)+(-fU.z)*sin(rotSpeed);
+
+    fU.x = fU.x*cos(rotSpeed)+(tempX)*sin(rotSpeed);
+    fU.y = fU.y*cos(rotSpeed)+(tempY)*sin(rotSpeed);
+    fU.z = fU.z*cos(rotSpeed)+(tempZ)*sin(rotSpeed);
+}
+
+/**************************************************************************************************************************************************************/
+/**************************************************************************************************************************************************************/
+/**************************************************************************************************************************************************************/
+/**************************************************************************************************************************************************************/
+/**************************************************************************************************************************************************************/
+/**************************************************************************************************************************************************************/
+/**************************************************************************************************************************************************************/
+/**************************************************************************************************************************************************************/
+/**************************************************************************************************************************************************************/
+/**************************************************************************************************************************************************************/
+/**************************************************************************************************************************************************************/
+/**************************************************************************************************************************************************************/
+/**************************************************************************************************************************************************************/
+/**************************************************************************************************************************************************************/
+/**************************************************************************************************************************************************************/
+/**************************************************************************************************************************************************************/
+/**************************************************************************************************************************************************************/
+/**************************************************************************************************************************************************************/
+/**************************************************************************************************************************************************************/
+/**************************************************************************************************************************************************************/
+/**************************************************************************************************************************************************************/
+
+
+point backPartPosition;
+point frontPartPosition;
+
+
+
+
+
+
+
+
+
 
 void drawSS()
+
 {
     glColor3f(1,0,0);
     drawSquare(20);
@@ -424,40 +633,27 @@ void drawCylinder(double radius,int slices,int stacks)
 point dirR;
 point dirL;
 point dirU;
-int cond;
-void gunBackLeftRotate(){
-    double tempX = dirR.x;
-    double tempY = dirR.y;
-    double tempZ = dirR.z;
-    dirR.x = dirR.x*cos(rotationAngle)+(-dirL.x)*sin(rotationAngle);
-    dirR.y = dirR.y*cos(rotationAngle)+(-dirL.y)*sin(rotationAngle);
-    dirR.z = dirR.z*cos(rotationAngle)+(-dirL.z)*sin(rotationAngle);
-    dirL.x = dirL.x*cos(rotationAngle)+(tempX)*sin(rotationAngle);
-    dirL.y = dirL.y*cos(rotationAngle)+(tempY)*sin(rotationAngle);
-    dirL.z = dirL.z*cos(rotationAngle)+(tempZ)*sin(rotationAngle);
-}
 
-void gunBackRightRotate(){
-    double tempX = dirL.x;
-    double tempY = dirL.y;
-    double tempZ = dirL.z;
-    dirL.x = dirL.x*cos(rotationAngle)+(-dirR.x)*sin(rotationAngle);
-    dirL.y = dirL.y*cos(rotationAngle)+(-dirR.y)*sin(rotationAngle);
-    dirL.z = dirL.z*cos(rotationAngle)+(-dirR.z)*sin(rotationAngle);
-    dirR.x = dirR.x*cos(rotationAngle)+(tempX)*sin(rotationAngle);
-    dirR.y = dirR.y*cos(rotationAngle)+(tempY)*sin(rotationAngle);
-    dirR.z = dirR.z*cos(rotationAngle)+(tempZ)*sin(rotationAngle);
-}
 
 void gunBackGoRight(){
     if(gunBackAngle <= LIMIT){
         gunBackAngle+=1;
+        turnRight();
+        turnFrontRight();
+        backPartPosition.x = bL.x*backTotalLength;
+        backPartPosition.y = bL.y*backTotalLength;
+        backPartPosition.z = bL.z*backTotalLength;
     }
 }
 
 void gunBackGoLeft(){
     if(gunBackAngle >= -LIMIT){
         gunBackAngle-=1;
+        turnLeft();
+        turnFrontLeft();
+        backPartPosition.x = bL.x*backTotalLength;
+        backPartPosition.y = bL.y*backTotalLength;
+        backPartPosition.z = bL.z*backTotalLength;
     }
 }
 
@@ -465,12 +661,22 @@ double gunBackUpAngle = 0;
 void gunBackGoUp(){
     if(gunBackUpAngle <= LIMIT){
         gunBackUpAngle+=1;
+        turnUp();
+        turnFrontUp();
+        backPartPosition.x = bL.x*backTotalLength;
+        backPartPosition.y = bL.y*backTotalLength;
+        backPartPosition.z = bL.z*backTotalLength;
     }
 }
 
 void gunBackGoDown(){
     if(gunBackUpAngle >= -LIMIT){
         gunBackUpAngle-=1;
+        turnDown();
+        turnFrontDown();
+        backPartPosition.x = bL.x*backTotalLength;
+        backPartPosition.y = bL.y*backTotalLength;
+        backPartPosition.z = bL.z*backTotalLength;
     }
 }
 
@@ -479,12 +685,14 @@ void gunBackGoDown(){
 void gunFrontGoUp(){
     if(gunFrontAngle <= LIMIT){
         gunFrontAngle+=1;
+        turnFrontDown();
     }
 }
 
 void gunFrontGoDown(){
     if(gunFrontAngle >= -LIMIT){
         gunFrontAngle-=1;
+        turnFrontUp();
     }
 }
 
@@ -502,9 +710,6 @@ void frontRollAntiClockwise(){
 
 
 
-void drawTarget(){
-
-}
 /**
 model of the gun
 */
@@ -537,15 +742,48 @@ void drawGun(){
     // target
     glPushMatrix();{
         glRotatef(90,0,1,0);
-        glTranslatef(0,0,-300);
+        glTranslatef(0,0,-targetDistance);
         double col = 0.5;
         glColor3f(col,col,col);
         drawSquare(60);
     }glPopMatrix();
+
+
+    int i ;
+    for(i = 0; i < numBullets; i++){
+        //*bullets on the target
+        glPushMatrix();{
+            glRotatef(90,0,1,0);
+            glTranslatef(-bulletArray[i].z,bulletArray[i].y,bulletArray[i].x+1);
+            double col = 1;
+            glColor3f(col,0,0);
+            drawSquare(2);
+        }glPopMatrix();
+    }
 }
 
 
+void shoot(){
 
+    /** B Point*/
+    backPartPosition.x = bL.x*backTotalLength;
+    backPartPosition.y = bL.y*backTotalLength;
+    backPartPosition.z = bL.z*backTotalLength;
+    double t = (-targetDistance-backPartPosition.x)/fL.x;
+    point shootPoint;
+    shootPoint.x = backPartPosition.x+(t*fL.x);
+    shootPoint.y = backPartPosition.y+(t*fL.y);
+    shootPoint.z = backPartPosition.z+(t*fL.z);
+
+    double boundary = 58;
+    if (abs(shootPoint.y) <= boundary && abs(shootPoint.z) <= boundary){
+        bulletArray[numBullets].x = shootPoint.x;
+        bulletArray[numBullets].y = shootPoint.y;
+        bulletArray[numBullets].z = shootPoint.z;
+        numBullets+=1;
+    }
+    printf("Shoot coordinate -->   %lf %lf %lf  ------- %d\n", shootPoint.x,shootPoint.y,shootPoint.z, numBullets);
+}
 
 
 
@@ -662,8 +900,7 @@ void specialKeyListener(int key, int x,int y){
 void mouseListener(int button, int state, int x, int y){	//x, y is the x-y of the screen (2D)
 	switch(button){
 		case GLUT_LEFT_BUTTON:
-			if(state == GLUT_DOWN){		// 2 times?? in ONE click? -- solution is checking DOWN or UP
-			}
+			shoot();
 			break;
 
 		case GLUT_RIGHT_BUTTON:
@@ -745,7 +982,7 @@ void init(){
 
 
     rotationAngle = 0.03;
-
+    targetDistance = 305;
 
     /**
     current position vector
@@ -769,22 +1006,6 @@ void init(){
     lVector.x = -1, lVector.y = 0, lVector.z = 0;
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     // gun direction vectors
     dirR.x = 0;
     dirR.y = 1;
@@ -796,6 +1017,14 @@ void init(){
     dirU.y = 0;
     dirU.z = 1;
 
+
+
+    bU.x=0,bU.y=0,bU.z=1;
+    bR.x=0,bR.y=1,bR.z=0;
+    bL.x=-1,bL.y=0,bL.z=0;
+    fU.x=0,fU.y=0,fU.z=1;
+    fR.x=0,fR.y=1,fR.z=0;
+    fL.x=-1,fL.y=0,fL.z=0;
 
 
 
@@ -814,6 +1043,14 @@ void init(){
 
 
 
+    point1.x = -(2* gunBackRadius  + gunBackHeight);
+    backTotalLength = abs(point1.x);
+    frontTotalLength= abs(2* gunFrontRadius+ gunFrontHeight) ;
+    point1.y = 0;
+    point1.z = 0;
+    point2.x = point1.x - (2* gunFrontRadius+ gunFrontHeight);
+    point2.y = 0;
+    point2.z = 0;
 
 
 
