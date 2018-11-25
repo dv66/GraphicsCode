@@ -75,6 +75,7 @@ int drawState;
 int isEvenNumbersOfPointsAdded;
 int totalPoints;
 bool movingPointOn;
+int movingPointSpeed = 2;
 int pos;
 
 
@@ -163,13 +164,17 @@ void generateArrowParameters(point2d p, point2d q){
 
 void generateHermiteCurveParameters(point2d p1, point2d r1, point2d p4, point2d r4){
     double ax, ay, bx, by, cx, cy, dx, dy;
-    ax = 2*p1.x - 2*p4.x + r1.x + r4.x;
-    bx = (-3)*p1.x + 3*p4.x -2*r1.x -1*r4.x;
-    cx = r1.x;
+    point2d r1Vector;
+    point2d r4Vector;
+    r1Vector.x = r1.x-p1.x; r1Vector.y = r1.y-p1.y;
+    r4Vector.x = r4.x-p4.x; r4Vector.y = r4.y-p4.y;
+    ax = 2*p1.x - 2*p4.x + r1Vector.x + r4Vector.x;
+    bx = (-3)*p1.x + 3*p4.x -2*r1Vector.x -1*r4Vector.x;
+    cx = r1Vector.x;
     dx = p1.x;
-    ay = 2*p1.y - 2*p4.y + r1.y + r4.y;
-    by = (-3)*p1.y + 3*p4.y -2*r1.y -1*r4.y;
-    cy = r1.y;
+    ay = 2*p1.y - 2*p4.y + r1Vector.y + r4Vector.y;
+    by = (-3)*p1.y + 3*p4.y -2*r1Vector.y -1*r4Vector.y;
+    cy = r1Vector.y;
     dy = p1.y;
     double t = 0;
     vector<point2d> arcPoints;
@@ -406,7 +411,7 @@ void animate(){
 
     if (movingPointOn){
         if (pos < movingPointTrack.size()) {
-            pos++;
+            pos = pos + movingPointSpeed;
         }
         else pos = 0;
     }
