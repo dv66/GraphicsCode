@@ -18,7 +18,7 @@ struct point2d
     double x, y;
 };
 
-void drawTriangle(point2d a, point2d b, point2d c);
+void drawTriangle(point2d a, point2d b, point2d c, double red, double green , double blue);
 
 
 
@@ -30,7 +30,7 @@ struct Arrow{
 
     void draw(){
         glPushMatrix();{
-            drawTriangle(endPoint, arrowRightVertex, arrowLeftVertex);
+            drawTriangle(endPoint, arrowRightVertex, arrowLeftVertex, 0.8,0,0);
             glColor3f(1.0,1.0,1.0);
             glBegin(GL_LINES);{
                     glVertex3f(startPoint.x, startPoint.y, 0);
@@ -75,7 +75,7 @@ int drawState;
 int isEvenNumbersOfPointsAdded;
 int totalPoints;
 bool movingPointOn;
-int movingPointSpeed = 2;
+int movingPointSpeed = 1;
 int pos;
 
 
@@ -107,9 +107,28 @@ void drawSquare()
     glEnd();
 }
 
-void drawTriangle(point2d a, point2d b, point2d c){
+
+
+void drawCircle(double radius,int segments, double red, double green, double blue){
+    vector<point2d> points;
+    glColor3f(red, green, blue);
+    for(int i=0;i<=segments;i++){
+        point2d newPoint;
+        points.push_back(newPoint);
+        points[i].x=radius*cos(((double)i/(double)segments)*2*pi);
+        points[i].y=radius*sin(((double)i/(double)segments)*2*pi);
+    }
+    //draw segments using generated points
+    for(int i=0;i<segments;i++){
+        point2d origin; origin.x=0;origin.y=0;
+        drawTriangle(points[i],points[i+1], origin, red, green, blue);
+    }
+}
+
+
+void drawTriangle(point2d a, point2d b, point2d c, double red, double green , double blue){
     glBegin(GL_TRIANGLES);
-        glColor3f(0.8,0,0);
+        glColor3f(red,green,blue);
         glVertex2f(a.x, a.y);
         glVertex2f(b.x, b.y);
         glVertex2f(c.x, c.y);
@@ -217,7 +236,7 @@ void movePointOnTheLoop(){
 void drawMovingPoint(point2d cur){
     glPushMatrix();{
         glTranslatef(cur.x, cur.y, 0);
-        drawSquare();
+        drawCircle(5, 6, 0,0.8,0.8);
     }glPopMatrix();
 }
 
@@ -270,6 +289,7 @@ void keyboardListener(unsigned char key, int x,int y){
 	switch(key){
 
         case 'a':
+            pos = 0;
             movingPointTrack.clear();
             movePointOnTheLoop();
             if(movingPointTrack.size())
@@ -316,22 +336,28 @@ void mouseListener(int button, int state, int x, int y){	//x, y is the x-y of th
 	switch(button){
 		case GLUT_LEFT_BUTTON:
 			if(state == GLUT_DOWN){		// 2 times?? in ONE click? -- solution is checking DOWN or UP
-                totalPoints++;
-                point2d newPoint;
-                newPoint.x = (double)x;
-                newPoint.y = (double)(windowHeight - y);
-                cp.push_back(newPoint);
-                if (totalPoints % 2 == 0){
-                    generateArrowParameters(cp[totalPoints-2], cp[totalPoints-1]);
-                    if (totalPoints >= 4) generateHermiteCurveParameters(cp[totalPoints-4],cp[totalPoints-3],cp[totalPoints-2],cp[totalPoints-1]);
+
+                /** if point add mode is ON*/
+                if (!drawState){
+                    totalPoints++;
+                    point2d newPoint;
+                    newPoint.x = (double)x;
+                    newPoint.y = (double)(windowHeight - y);
+                    cp.push_back(newPoint);
+                    if (totalPoints % 2 == 0){
+                        generateArrowParameters(cp[totalPoints-2], cp[totalPoints-1]);
+                        if (totalPoints >= 4) generateHermiteCurveParameters(cp[totalPoints-4],cp[totalPoints-3],cp[totalPoints-2],cp[totalPoints-1]);
+                    }
                 }
+
 			}
 			break;
 
 		case GLUT_RIGHT_BUTTON:
 			if(state == GLUT_DOWN){		// 2 times?? in ONE click? -- solution is checking DOWN or UP
-                if (totalPoints%2 == 0 && totalPoints>=4){
+                if (totalPoints%2 == 0 && totalPoints>=4 && !drawState){
                     generateHermiteCurveParameters(cp[totalPoints-2],cp[totalPoints-1],cp[0],cp[1]);
+                    drawState = 1;
                 }
             }
 			break;
@@ -378,7 +404,8 @@ void display(){
 
     /** Draw Points */
     for (int i = 0; i < cp.size(); i++){
-        glColor3f(1, 1, 0);
+        if (i%2)  glColor3f(1, 1, 0);
+        else glColor3f(0, 1, 0);
         glPushMatrix();{
             glTranslatef(cp[i].x, cp[i].y, 0);
             drawSquare();
@@ -387,20 +414,26 @@ void display(){
 
 
 
+
     /** Draw arrows*/
     for (int i = 0 ; i < arrows.size(); i++){
         arrows[i].draw();
     }
 
-    /** Draw arcs*/
-    for (int i = 0 ; i < arcs.size(); i++){
-        arcs[i].draw();
+
+    /** if drawState is ON */
+    if(drawState){
+        /** Draw arcs*/
+        for (int i = 0 ; i < arcs.size(); i++){
+            arcs[i].draw();
+        }
     }
 
     if(movingPointOn){
         drawMovingPoint(movingPointTrack[pos]);
     }
 
+//    drawCircle(double radius,int segments, double red, double green, double blue)
 
 	//ADD this line in the end --- if you use double buffer (i.e. GL_DOUBLE)
 	glutSwapBuffers();
