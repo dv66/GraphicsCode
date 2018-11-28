@@ -11,11 +11,17 @@
 
 using namespace std;
 
+enum modes{
+    UPDATE, EDIT
+};
 
 
 struct point2d
 {
     double x, y;
+    bool operator ==(const point2d& p) const{
+        return x==p.x && y==p.y;
+    }
 };
 
 void drawTriangle(point2d a, point2d b, point2d c, double red, double green , double blue);
@@ -77,10 +83,11 @@ int totalPoints;
 bool movingPointOn;
 int movingPointSpeed = 1;
 int pos;
+int updateModeClickCount;
+int updatePointPositionIndex;
+int updateArrowIndex;
 
-
-
-
+int mode;
 
 
 
@@ -109,21 +116,24 @@ void drawSquare()
 
 
 
+
 void drawCircle(double radius,int segments, double red, double green, double blue){
-    vector<point2d> points;
     glColor3f(red, green, blue);
+    vector<point2d> circlePoints;
     for(int i=0;i<=segments;i++){
         point2d newPoint;
-        points.push_back(newPoint);
-        points[i].x=radius*cos(((double)i/(double)segments)*2*pi);
-        points[i].y=radius*sin(((double)i/(double)segments)*2*pi);
+        circlePoints.push_back(newPoint);
+        circlePoints[i].x=radius*cos(((double)i/(double)segments)*2*pi);
+        circlePoints[i].y=radius*sin(((double)i/(double)segments)*2*pi);
     }
     //draw segments using generated points
     for(int i=0;i<segments;i++){
         point2d origin; origin.x=0;origin.y=0;
-        drawTriangle(points[i],points[i+1], origin, red, green, blue);
+        drawTriangle(circlePoints[i],circlePoints[i+1], origin, red, green, blue);
     }
 }
+
+
 
 
 void drawTriangle(point2d a, point2d b, point2d c, double red, double green , double blue){
@@ -156,7 +166,7 @@ point2d counterClockWiseRotation(point2d vec){
 
 
 
-void generateArrowParameters(point2d p, point2d q){
+void generateArrowParameters(point2d p, point2d q, int pos=-1){
     point2d directionVector;
     directionVector.x = p.x - q.x ;
     directionVector.y = p.y - q.y ;
@@ -175,41 +185,53 @@ void generateArrowParameters(point2d p, point2d q){
     newArrow.endPoint = q;
     newArrow.arrowRightVertex = s;
     newArrow.arrowLeftVertex = t;
-    arrows.push_back(newArrow);
+    if (pos==-1) arrows.push_back(newArrow);
+    else{
+        arrows[pos] = newArrow;
+    }
 }
 
 
 
 
-void generateHermiteCurveParameters(point2d p1, point2d r1, point2d p4, point2d r4){
-    double ax, ay, bx, by, cx, cy, dx, dy;
-    point2d r1Vector;
-    point2d r4Vector;
-    r1Vector.x = r1.x-p1.x; r1Vector.y = r1.y-p1.y;
-    r4Vector.x = r4.x-p4.x; r4Vector.y = r4.y-p4.y;
-    ax = 2*p1.x - 2*p4.x + r1Vector.x + r4Vector.x;
-    bx = (-3)*p1.x + 3*p4.x -2*r1Vector.x -1*r4Vector.x;
-    cx = r1Vector.x;
-    dx = p1.x;
-    ay = 2*p1.y - 2*p4.y + r1Vector.y + r4Vector.y;
-    by = (-3)*p1.y + 3*p4.y -2*r1Vector.y -1*r4Vector.y;
-    cy = r1Vector.y;
-    dy = p1.y;
-    double t = 0;
-    vector<point2d> arcPoints;
+void generateHermiteCurveParameters(){
+    point2d p1, r1, p4, r4;
+    int arrLen = arrows.size();
+    arcs.clear();
+    for (int i = 0 ; i <arrLen ; i++){
+        p1 = arrows[i].startPoint;
+        r1 = arrows[i].endPoint;
+        p4 = arrows[(i+1)%arrLen].startPoint;
+        r4 = arrows[(i+1)%arrLen].endPoint;
+        double ax, ay, bx, by, cx, cy, dx, dy;
+        point2d r1Vector;
+        point2d r4Vector;
+        r1Vector.x = r1.x-p1.x; r1Vector.y = r1.y-p1.y;
+        r4Vector.x = r4.x-p4.x; r4Vector.y = r4.y-p4.y;
+        ax = 2*p1.x - 2*p4.x + r1Vector.x + r4Vector.x;
+        bx = (-3)*p1.x + 3*p4.x -2*r1Vector.x -1*r4Vector.x;
+        cx = r1Vector.x;
+        dx = p1.x;
+        ay = 2*p1.y - 2*p4.y + r1Vector.y + r4Vector.y;
+        by = (-3)*p1.y + 3*p4.y -2*r1Vector.y -1*r4Vector.y;
+        cy = r1Vector.y;
+        dy = p1.y;
+        double t = 0;
+        vector<point2d> arcPoints;
 
-    /** this part has to be changed
-        forward difference method must be used
-    */
-    while(t <= 1){
-        double X = ax*(t*t*t) + bx*(t*t) + cx*t + dx;
-        double Y = ay*(t*t*t) + by*(t*t) + cy*t + dy;
-        point2d newPoint; newPoint.x = X; newPoint.y =Y;
-        arcPoints.push_back(newPoint);
-        t += 0.01;
+        /** this part has to be changed
+            forward difference method must be used
+        */
+        while(t <= 1){
+            double X = ax*(t*t*t) + bx*(t*t) + cx*t + dx;
+            double Y = ay*(t*t*t) + by*(t*t) + cy*t + dy;
+            point2d newPoint; newPoint.x = X; newPoint.y =Y;
+            arcPoints.push_back(newPoint);
+            t += 0.01;
+        }
+        Curve newArc; newArc.connectionPoints = arcPoints;
+        arcs.push_back(newArc);
     }
-    Curve newArc; newArc.connectionPoints = arcPoints;
-    arcs.push_back(newArc);
 }
 
 
@@ -233,10 +255,10 @@ void movePointOnTheLoop(){
 
 
 
-void drawMovingPoint(point2d cur){
+void drawMovingPoint(point2d cur, double radius=5, double segments=6){
     glPushMatrix();{
         glTranslatef(cur.x, cur.y, 0);
-        drawCircle(5, 6, 0,0.8,0.8);
+        drawCircle(radius,segments, 0,0.8,0.8);
     }glPopMatrix();
 }
 
@@ -289,11 +311,20 @@ void keyboardListener(unsigned char key, int x,int y){
 	switch(key){
 
         case 'a':
+            if(drawState && mode == EDIT){
+                pos = 0;
+                movingPointTrack.clear();
+                movePointOnTheLoop();
+                if(movingPointTrack.size())
+                    movingPointOn ^= 1;
+            }
+			break;
+
+        case 'u':
+            /** if point is moving on track then stop it and take it to its initial state*/
             pos = 0;
-            movingPointTrack.clear();
-            movePointOnTheLoop();
-            if(movingPointTrack.size())
-                movingPointOn ^= 1;
+            movingPointOn = 0;
+            mode = UPDATE;
 			break;
 
 		default:
@@ -336,17 +367,51 @@ void mouseListener(int button, int state, int x, int y){	//x, y is the x-y of th
 	switch(button){
 		case GLUT_LEFT_BUTTON:
 			if(state == GLUT_DOWN){		// 2 times?? in ONE click? -- solution is checking DOWN or UP
-
+                double clickX = (double)x;
+                double clickY = (double)(windowHeight - y);
                 /** if point add mode is ON*/
-                if (!drawState){
+                if (!drawState && mode == EDIT){
                     totalPoints++;
                     point2d newPoint;
-                    newPoint.x = (double)x;
-                    newPoint.y = (double)(windowHeight - y);
+                    newPoint.x = clickX;
+                    newPoint.y = clickY;
                     cp.push_back(newPoint);
                     if (totalPoints % 2 == 0){
                         generateArrowParameters(cp[totalPoints-2], cp[totalPoints-1]);
-                        if (totalPoints >= 4) generateHermiteCurveParameters(cp[totalPoints-4],cp[totalPoints-3],cp[totalPoints-2],cp[totalPoints-1]);
+                    }
+                }
+
+                /** if UPDATE mode is ON*/
+                else if(mode == UPDATE){
+                    if(updateModeClickCount == 0){
+                        double dis = 1000000;
+                        for(int i = 0 ; i < cp.size(); i++){
+                            double d = sqrt((cp[i].x-clickX)*(cp[i].x-clickX) + (cp[i].y-clickY)*(cp[i].y-clickY));
+                            if(d < dis){
+                                dis = d;
+                                updatePointPositionIndex = i;
+                            }
+                        }
+                        updateModeClickCount+=1;
+                    }
+                    else{
+                        int arrowIndex;
+                        point2d clickedPoint; clickedPoint.x = clickX; clickedPoint.y = clickY;
+                        for(int i = 0 ; i < arrows.size(); i++){
+                            if(arrows[i].startPoint == cp[updatePointPositionIndex]){
+                                generateArrowParameters(clickedPoint, arrows[i].endPoint, i);
+                                break;
+                            }
+                            if(arrows[i].endPoint == cp[updatePointPositionIndex]){
+                                generateArrowParameters(arrows[i].startPoint, clickedPoint, i);
+                                break;
+                            }
+                        }
+                        cp[updatePointPositionIndex].x = clickX;
+                        cp[updatePointPositionIndex].y = clickY;
+                        updateModeClickCount = 0;
+                        generateHermiteCurveParameters();
+                        mode = EDIT;
                     }
                 }
 
@@ -356,7 +421,7 @@ void mouseListener(int button, int state, int x, int y){	//x, y is the x-y of th
 		case GLUT_RIGHT_BUTTON:
 			if(state == GLUT_DOWN){		// 2 times?? in ONE click? -- solution is checking DOWN or UP
                 if (totalPoints%2 == 0 && totalPoints>=4 && !drawState){
-                    generateHermiteCurveParameters(cp[totalPoints-2],cp[totalPoints-1],cp[0],cp[1]);
+                    generateHermiteCurveParameters();
                     drawState = 1;
                 }
             }
@@ -402,6 +467,20 @@ void display(){
 	glMatrixMode(GL_MODELVIEW);
 
 
+
+
+
+
+
+	/** Draw Circle on the Point to be Updated */
+	if(mode == UPDATE){
+        if(updateModeClickCount == 1){
+            drawMovingPoint(cp[updatePointPositionIndex],10,10);
+        }
+    }
+
+
+
     /** Draw Points */
     for (int i = 0; i < cp.size(); i++){
         if (i%2)  glColor3f(1, 1, 0);
@@ -429,9 +508,18 @@ void display(){
         }
     }
 
-    if(movingPointOn){
+
+
+    /** if EDIT mode is ON an movingpointstate is ON*/
+    if(movingPointOn && mode == EDIT){
         drawMovingPoint(movingPointTrack[pos]);
     }
+
+
+
+
+
+
 
 //    drawCircle(double radius,int segments, double red, double green, double blue)
 
@@ -454,14 +542,15 @@ void animate(){
 
 void init(){
 	//codes for initialization
-
-
     drawState = 0;
     movingPointOn = 0;
     isEvenNumbersOfPointsAdded = 1;
     totalPoints = 0;
+    mode = EDIT;
+    updateModeClickCount = 0;
 	//clear the screen
 	glClearColor(0,0,0,0);
+
 
 	/************************
 	/ set-up projection here
