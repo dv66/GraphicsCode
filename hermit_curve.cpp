@@ -192,6 +192,46 @@ void generateArrowParameters(point2d p, point2d q, int pos=-1){
 }
 
 
+void printVector(vector<double>& v){
+    for(int i = 0 ; i <v.size(); i++){
+        cout << v[i]<<" ";
+    }
+    cout << "\n-------------------------------------------------------------------"<<endl;
+}
+
+void printVector(double* v){
+    for(int i = 0 ; i <4; i++){
+        cout << v[i]<<" ";
+    }
+    cout << "\n-------------------------------------------------------------------"<<endl;
+}
+
+vector<double> forwardDifference(double a, double b , double c, double d){
+    int NEED = 101;
+    double T[] = {0.0,0.01,0.02,0.03};
+    double X[101],X_2[101],X_3[101],X_4[101];
+    for(int i = 0; i < 4; i++){
+        double val = a*(T[i]*T[i]*T[i])+b*(T[i]*T[i])+c*(T[i])+d;
+        X[i] = val;
+    }
+    for (int i = 1,k=0 ; i <4; i++,k++){
+        X_2[k]=(X[i]-X[i-1]);
+    }
+    for (int i = 1,k=0 ; i <3; i++,k++){
+        X_3[k]=(X_2[i]-X_2[i-1]);
+    }
+    for (int i = 1,k=0 ; i <2; i++,k++){
+        X_4[k]=(X_3[i]-X_3[i-1]);
+    }
+    /***************************************************************/
+    for(int i = 2; i<NEED; i++) X_3[i]=(X_3[i-1]+X_4[0]);
+    for(int i = 3; i<NEED; i++) X_2[i]=(X_2[i-1] + X_3[i-1]);
+    for(int i = 4; i<NEED; i++) X[i] = (X[i-1] + X_2[i-1]);
+    vector<double> newVector;
+    for(int i = 0 ; i<NEED ; i++) newVector.push_back(X[i]);
+    return newVector;
+}
+
 
 
 void generateHermiteCurveParameters(){
@@ -219,15 +259,14 @@ void generateHermiteCurveParameters(){
         double t = 0;
         vector<point2d> arcPoints;
 
-        /** this part has to be changed
-            forward difference method must be used
+        /**
+            forward difference method
         */
-        while(t <= 1){
-            double X = ax*(t*t*t) + bx*(t*t) + cx*t + dx;
-            double Y = ay*(t*t*t) + by*(t*t) + cy*t + dy;
-            point2d newPoint; newPoint.x = X; newPoint.y =Y;
+        vector<double> forwardX = forwardDifference(ax,bx,cx,dx);
+        vector<double> forwardY = forwardDifference(ay,by,cy,dy);
+        for(int i = 0 ; i<forwardX.size(); i++){
+            point2d newPoint; newPoint.x = forwardX[i]; newPoint.y =forwardY[i];
             arcPoints.push_back(newPoint);
-            t += 0.01;
         }
         Curve newArc; newArc.connectionPoints = arcPoints;
         arcs.push_back(newArc);
@@ -322,7 +361,6 @@ void keyboardListener(unsigned char key, int x,int y){
 
         case 'u':
             /** if point is moving on track then stop it and take it to its initial state*/
-            pos = 0;
             movingPointOn = 0;
             mode = UPDATE;
 			break;
@@ -420,6 +458,7 @@ void mouseListener(int button, int state, int x, int y){	//x, y is the x-y of th
 
 		case GLUT_RIGHT_BUTTON:
 			if(state == GLUT_DOWN){		// 2 times?? in ONE click? -- solution is checking DOWN or UP
+			    movingPointOn = 0;
                 if (totalPoints%2 == 0 && totalPoints>=4 && !drawState){
                     generateHermiteCurveParameters();
                     drawState = 1;
@@ -472,12 +511,7 @@ void display(){
 
 
 
-	/** Draw Circle on the Point to be Updated */
-	if(mode == UPDATE){
-        if(updateModeClickCount == 1){
-            drawMovingPoint(cp[updatePointPositionIndex],10,10);
-        }
-    }
+
 
 
 
@@ -516,7 +550,12 @@ void display(){
     }
 
 
-
+    /** Draw Circle on the Point to be Updated */
+	if(mode == UPDATE){
+        if(updateModeClickCount == 1){
+            drawMovingPoint(cp[updatePointPositionIndex],10,10);
+        }
+    }
 
 
 
@@ -550,7 +589,6 @@ void init(){
     updateModeClickCount = 0;
 	//clear the screen
 	glClearColor(0,0,0,0);
-
 
 	/************************
 	/ set-up projection here
