@@ -208,8 +208,13 @@ void printVector(double* v){
 
 vector<double> forwardDifference(double a, double b , double c, double d){
     int NEED = 101;
-    double T[] = {0.0,0.01,0.02,0.03};
-    double X[101],X_2[101],X_3[101],X_4[101];
+    double inc = 1/((double)NEED-1);
+    double T[4];
+    T[0]=0.0; T[1]=T[0]+inc; T[2]=T[1]+inc; T[3]=T[2]+inc;
+    double* X = new double[NEED];
+    double* X_2 = new double[NEED];
+    double* X_3 = new double[NEED];
+    double* X_4 = new double[NEED];
     for(int i = 0; i < 4; i++){
         double val = a*(T[i]*T[i]*T[i])+b*(T[i]*T[i])+c*(T[i])+d;
         X[i] = val;
