@@ -52,6 +52,7 @@ struct Curve{
     vector<point2d> connectionPoints;
     void draw(){
         for (int i=1; i < connectionPoints.size(); i++){
+            glColor3f(1.0,1.0,1.0);
             glBegin(GL_LINES);{
                 glVertex3f(connectionPoints[i-1].x, connectionPoints[i-1].y, 0);
                 glVertex3f(connectionPoints[i].x, connectionPoints[i].y, 0);
@@ -86,7 +87,7 @@ int pos;
 int updateModeClickCount;
 int updatePointPositionIndex;
 int updateArrowIndex;
-
+int showNoArrows;
 int mode;
 
 
@@ -370,6 +371,10 @@ void keyboardListener(unsigned char key, int x,int y){
             mode = UPDATE;
 			break;
 
+        case 'g':
+            /** if arrows are visible, make them invisible and vice versa*/
+            showNoArrows^=1;
+			break;
 		default:
 			break;
 	}
@@ -519,23 +524,21 @@ void display(){
 
 
 
+    if (!showNoArrows){
+        /** Draw Points */
+        for (int i = 0; i < cp.size(); i++){
+            if (i%2)  glColor3f(1, 1, 0);
+            else glColor3f(0, 1, 0);
+            glPushMatrix();{
+                glTranslatef(cp[i].x, cp[i].y, 0);
+                drawSquare();
+            }glPopMatrix();
+        }
 
-    /** Draw Points */
-    for (int i = 0; i < cp.size(); i++){
-        if (i%2)  glColor3f(1, 1, 0);
-        else glColor3f(0, 1, 0);
-        glPushMatrix();{
-            glTranslatef(cp[i].x, cp[i].y, 0);
-            drawSquare();
-        }glPopMatrix();
-    }
-
-
-
-
-    /** Draw arrows*/
-    for (int i = 0 ; i < arrows.size(); i++){
-        arrows[i].draw();
+        /** Draw arrows*/
+        for (int i = 0 ; i < arrows.size(); i++){
+            arrows[i].draw();
+        }
     }
 
 
@@ -592,6 +595,7 @@ void init(){
     totalPoints = 0;
     mode = EDIT;
     updateModeClickCount = 0;
+    showNoArrows = 0;
 	//clear the screen
 	glClearColor(0,0,0,0);
 
