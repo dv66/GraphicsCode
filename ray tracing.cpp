@@ -90,6 +90,12 @@ struct point
         return tp;
 	}
 
+	point operator-()const{
+        point T;
+        T.x = -x; T.y = -y; T.z = -z;
+        return T;
+	}
+
 
 	void normalize(){
         double magnitude = sqrt(x*x + y*y+z*z);
@@ -283,7 +289,10 @@ public:
     double amb, dif, spec, reflect;
     double shininess;
     point peakPoint;
+    point cornerPoint1, cornerPoint2,cornerPoint3, cornerPoint4;
+
     TrianglularPlane planes[4];
+
 
 
     Pyramid(point low, double w, double h,Color c, double a, double d, double sp, double refl, double shiny){
@@ -298,7 +307,7 @@ public:
         shininess = shiny;
         peakPoint = lowestPoint;
         peakPoint.z += h;
-        point cornerPoint1, cornerPoint2,cornerPoint3, cornerPoint4;
+
         cornerPoint1.x=lowestPoint.x+(width/2), cornerPoint1.y = lowestPoint.y+(width/2), cornerPoint1.z = lowestPoint.z;
         cornerPoint2.x=lowestPoint.x+(width/2), cornerPoint2.y = lowestPoint.y-(width/2), cornerPoint2.z = lowestPoint.z;
         cornerPoint3.x=lowestPoint.x-(width/2), cornerPoint3.y = lowestPoint.y-(width/2), cornerPoint3.z = lowestPoint.z;
@@ -561,6 +570,56 @@ Color getCheckerboardCellColor(point intersectionPoint){
 }
 
 
+bool isBlockedbyObject(point S, point P){
+
+}
+
+
+point reflect(point a, point n){
+    return a - scale(dot(a,n), n);
+}
+
+
+Color illuminate(point castedRay, point intersectingPoint, Color color, point N, double shininess, int depth){
+    if(depth ==0){
+        Color c(0,0,0); return c;
+    }
+    double lambert, phong;
+    lambert = 0;
+    phong = 0;
+    point reflectedRay;
+    for(int i=0; i<numNormalLightSources; i++){
+        NormalLight normalLight = normalLights[i];
+        if(isBlockedbyObject(normalLight.pos, intersectingPoint)) continue;
+        point toSource = intersectingPoint - normalLight.pos;
+        toSource.normalize();
+        N.normalize();
+        double distance = magnitude(toSource);
+        double scalingFactor = exp(-distance*distance *normalLight.falloffParam);
+        lambert += (dot(toSource, N)*scalingFactor);
+        point sourceToIntersection=normalLight.pos - intersectingPoint;
+        reflectedRay = reflect(sourceToIntersection, N);
+        reflectedRay.normalize();
+        phong += pow(dot(reflectedRay, castedRay), shininess)*scalingFactor;
+    }
+
+
+    for(int i=0; i<numSpotLightSources; i++){
+
+    }
+//    Color reflectedColor = illuminate(reflectedRay);
+}
+
+
+
+
+
+
+
+
+
+
+
 Color getColor(point start){
     point direction = start - currentPosition;
     direction.normalize();
@@ -649,6 +708,20 @@ Color getColor(point start){
 //    }
     return col;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -901,8 +974,7 @@ void init(){
     rotationAngle = 0.03;
     targetDistance = 305;
 
-    screen_x = 500;
-    screen_y = 500;
+
 
     /**
     current position vector
@@ -1015,7 +1087,7 @@ void parseInput(){
 
 int main(int argc, char **argv){
 	glutInit(&argc,argv);
-	screen_x = screen_y = 500;
+	screen_x = screen_y = 768;
 	glutInitWindowSize(screen_x, screen_y);
 	glutInitWindowPosition(0, 0);
 	glutInitDisplayMode(GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGB);	//Depth, Double buffer, RGB color
