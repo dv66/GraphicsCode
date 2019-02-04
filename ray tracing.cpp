@@ -43,6 +43,7 @@ int numObjects;
 int screen_x, screen_y;
 int numNormalLightSources;
 int numSpotLightSources;
+int BOARD_SIZE;
 
 
 
@@ -55,8 +56,38 @@ int numSpotLightSources;
 
 
 
+bitmap_image b_img ("texture.bmp");
+
+class color {
+public:
+    double r, g, b;
+    color(double r, double g, double b) {
+        this->r = r;
+        this->g = g;
+        this->b = b;
+    }
+    color() {
+    }
+};
+
+color **textureBuffer;
+int height, width;
 
 
+void makeTexture(){
+    height = b_img.height();
+    width = b_img.width();
+    textureBuffer = new color* [width];
+    for (int i = 0; i < width; i++) {
+        textureBuffer[i] = new color [height];
+        for (int j = 0; j < height; j++) {
+            unsigned char r, g, b;
+            b_img.get_pixel(i, j, r, g, b);
+            color c(r/255.0, g/255.0, b/255.0);
+            textureBuffer[i][j] = c;
+        }
+    }
+}
 
 
 
@@ -90,11 +121,6 @@ struct point
         return tp;
 	}
 
-	point operator-()const{
-        point T;
-        T.x = -x; T.y = -y; T.z = -z;
-        return T;
-	}
 
 
 	void normalize(){
@@ -104,8 +130,14 @@ struct point
         z = z/magnitude;
 	}
 
+    void print_point(){
+        cout << x << " " <<  y << " " <<  z << endl;
+    }
 
 };
+
+point midPoint;
+
 
 double dot(point p, point q){
         return q.x*p.x + q.y*p.y + q.z*p.z;
@@ -270,14 +302,26 @@ void drawSquare(double a, double r, double g, double b)
 	}glEnd();
 }
 
+
+
+/// a, b, c in clock-wise order
+point threePointToNormal(point a, point b, point c){
+    point vB = b-a;
+    point vC = c-a;
+    return cross(vB, vC);
+}
+
+
 struct TrianglularPlane{
     point p;
     point q;
     point r;
     Color c;
+    point normal ;
     void drawPlane(double rr, double g, double b){
         drawTriangle(p,q,r,rr,g,b);
     }
+
 };
 
 
@@ -312,10 +356,10 @@ public:
         cornerPoint2.x=lowestPoint.x+(width/2), cornerPoint2.y = lowestPoint.y-(width/2), cornerPoint2.z = lowestPoint.z;
         cornerPoint3.x=lowestPoint.x-(width/2), cornerPoint3.y = lowestPoint.y-(width/2), cornerPoint3.z = lowestPoint.z;
         cornerPoint4.x=lowestPoint.x-(width/2), cornerPoint4.y = lowestPoint.y+(width/2), cornerPoint4.z = lowestPoint.z;
-        planes[0].p = peakPoint;planes[0].q =cornerPoint1 ;planes[0].r = cornerPoint2;
-        planes[1].p = peakPoint;planes[1].q =cornerPoint2 ;planes[1].r = cornerPoint3;
-        planes[2].p = peakPoint;planes[2].q =cornerPoint3 ;planes[2].r = cornerPoint4;
-        planes[3].p = peakPoint;planes[3].q =cornerPoint4 ;planes[3].r = cornerPoint1;
+        planes[0].p = peakPoint;planes[0].q =cornerPoint1 ;planes[0].r = cornerPoint2; planes[0].normal=threePointToNormal(peakPoint,cornerPoint1,cornerPoint2);
+        planes[1].p = peakPoint;planes[1].q =cornerPoint2 ;planes[1].r = cornerPoint3; planes[1].normal=threePointToNormal(peakPoint,cornerPoint2,cornerPoint3);
+        planes[2].p = peakPoint;planes[2].q =cornerPoint3 ;planes[2].r = cornerPoint4; planes[2].normal=threePointToNormal(peakPoint,cornerPoint3,cornerPoint4);
+        planes[3].p = peakPoint;planes[3].q =cornerPoint4 ;planes[3].r = cornerPoint1; planes[3].normal=threePointToNormal(peakPoint,cornerPoint4,cornerPoint1);
     }
 
     void print_vals(){
@@ -425,7 +469,7 @@ void drawCheckerboard(){
     can change this value of boardSize to an EVEN number (always EVEN)
     center cell is always white
     */
-    int boardSize = 30;
+    int boardSize = BOARD_SIZE;
 
 
 
@@ -557,7 +601,7 @@ bool checkInsideTriangle(TrianglularPlane plane, point x){
     return abs(area2+area3+area4 - area1) <tolerance;
 }
 
-
+int checkerboardmode = 0;
 
 Color getCheckerboardCellColor(point intersectionPoint){
    int dx = ((int)ceil(abs(intersectionPoint.x)/checkerboarchCellWidth)) / 2;
@@ -570,63 +614,39 @@ Color getCheckerboardCellColor(point intersectionPoint){
 }
 
 
-bool isBlockedbyObject(point S, point P){
-
-}
-
-
-point reflect(point a, point n){
-    return a - scale(dot(a,n), n);
-}
-
-
-Color illuminate(point castedRay, point intersectingPoint, Color color, point N, double shininess, int depth){
-    if(depth ==0){
-        Color c(0,0,0); return c;
-    }
-    double lambert, phong;
-    lambert = 0;
-    phong = 0;
-    point reflectedRay;
-    for(int i=0; i<numNormalLightSources; i++){
-        NormalLight normalLight = normalLights[i];
-        if(isBlockedbyObject(normalLight.pos, intersectingPoint)) continue;
-        point toSource = intersectingPoint - normalLight.pos;
-        toSource.normalize();
-        N.normalize();
-        double distance = magnitude(toSource);
-        double scalingFactor = exp(-distance*distance *normalLight.falloffParam);
-        lambert += (dot(toSource, N)*scalingFactor);
-        point sourceToIntersection=normalLight.pos - intersectingPoint;
-        reflectedRay = reflect(sourceToIntersection, N);
-        reflectedRay.normalize();
-        phong += pow(dot(reflectedRay, castedRay), shininess)*scalingFactor;
-    }
-
-
-    for(int i=0; i<numSpotLightSources; i++){
-
-    }
-//    Color reflectedColor = illuminate(reflectedRay);
+Color getTexturedCellColor(point intersectionPoint){
+   double actualCellWidth = 2 * checkerboarchCellWidth;
+   double disx = ((BOARD_SIZE*actualCellWidth) + checkerboarchCellWidth + intersectionPoint.x);
+   double disy = (((BOARD_SIZE/2)-1)*actualCellWidth) + checkerboarchCellWidth + intersectionPoint.y;
+   int dx = disx/actualCellWidth;
+   int dy = disy/actualCellWidth;
+   double s = disx - (double)(dx * actualCellWidth);
+   double t= disy - (double)(dy * actualCellWidth);
+   s/=actualCellWidth;
+   t/=actualCellWidth;
+   if (t < 0) t = 0;
+   if(s < 0) s = 0;
+   Color c;
+   color tc = textureBuffer[(int)(s * width)][(int)(t * height)];
+   c.r = tc.r; c.g = tc.g; c.b = tc.b;
+   return c;
 }
 
 
 
 
 
+/// returns true if an object is located between intersection point and lightsource
+bool isBlockedbyObject(point SS, point PP){
+    const double safeRange = 0.01; /// ektu samne theke start korlam
+    PP.x += safeRange; PP.y += safeRange; PP.z += safeRange;
+    point dirPS = SS-PP;
+    double t = magnitude(dirPS);
 
-
-
-
-
-
-Color getColor(point start){
-    point direction = start - currentPosition;
+    point start = PP;
+    point direction = dirPS;
     direction.normalize();
-
     /**************** check spheres ****************/
-    double t = 100000;
-    Color col(0,0,0);
     for(int i=0; i<spheres.size(); i++){
         Sphere s = spheres[i];
         double a = 1;
@@ -636,11 +656,11 @@ Color getColor(point start){
             double d = sqrt(b*b - 4*a*c);
             double t1 = -(b+d)/(2*a);
             double t2 = -(b-d)/(2*a);
-            if(t1>=0 && t1 < t){
-                t = t1; col=s.color;
+            if(t1>0 && t1 < t){
+                return true;
             }
-            if(t2>=0 && t2 < t){
-                t = t2; col=s.color;
+            if(t2>0 && t2 < t){
+                return true;
             }
         }
     }
@@ -668,8 +688,83 @@ Color getColor(point start){
             point intersectionPoint = P + scale(tt, V);
             bool check = checkInsideTriangle(plane, intersectionPoint);
             if(check && tt < t){
-                t = tt;
-                col = pyramids[i].color;
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+
+point reflect(point a, point n){
+    return a - scale(dot(a,n)*2, n);
+}
+
+
+
+
+bool inSpotLightRange(point v1, point v2, double cutoff){
+    v1.normalize();
+    v2.normalize();
+
+    angle = (acos(dot(v1,v2)) * 180)/pi;
+    if (angle <= cutoff){
+        return true;
+    }
+    return false;
+}
+
+
+
+
+
+
+
+
+Color getColor(point start, point direction, int depth){
+    if(depth ==0){
+        Color c(0,0,0); return c;
+    }
+    point intersectingPoint;
+    point normal;
+    double amb, dif, spec, refl, shininess;
+
+
+//    point direction = start - currentPosition;
+    direction.normalize();
+
+    /**************** check spheres ****************/
+    double t = farDistance;
+    Color col(0,0,0);
+    for(int i=0; i<spheres.size(); i++){
+        Sphere s = spheres[i];
+        double a = 1;
+        double b = 2 * dot(start-s.center, direction);
+        double c = dot(start-s.center, start-s.center) - s.radius * s.radius;
+        if (b*b - 4*a*c >=0 ){
+            double d = sqrt(b*b - 4*a*c);
+            double t1 = -(b+d)/(2*a);
+            double t2 = -(b-d)/(2*a);
+            if(t1>0 && t1 < t){
+                t = t1; col=s.color;
+                intersectingPoint = start + scale(t, direction);
+                amb=s.amb;
+                dif=s.dif;
+                spec=s.spec;
+                refl=s.reflect;
+                shininess = s.shininess;
+                normal = intersectingPoint - s.center;
+            }
+            if(t2>0 && t2 < t){
+                t = t2; col=s.color;
+                intersectingPoint = start + scale(t, direction);
+                amb=s.amb;
+                dif=s.dif;
+                spec=s.spec;
+                refl=s.reflect;
+                shininess = s.shininess;
+                normal = intersectingPoint - s.center;
             }
         }
     }
@@ -677,6 +772,38 @@ Color getColor(point start){
 
 
 
+    /**************** check pyramid **********************/
+
+    for(int i=0; i<pyramids.size(); i++){
+        for(int j=0; j<4; j++){
+            TrianglularPlane plane = pyramids[i].planes[j];
+            /*** check intersection ***/
+            point C = plane.p;
+            point A = plane.q - plane.p;
+            point B = plane.r - plane.p;
+            point P = start;
+            point V = direction;
+            double top[3][3]={{C.x-P.x,-A.x,-B.x},{C.y-P.y,-A.y,-B.y},{C.z-P.z,-A.z,-B.z}};
+            double bottom[3][3] = {{V.x, -A.x, -B.x},{V.y, -A.y, -B.y},{V.z, -A.z, -B.z}};
+            double den = determinant(bottom);
+            if (den == 0) continue;
+            double tt = determinant(top)/den;
+            if(tt <= 0) continue;
+            point intersectionPoint = P + scale(tt, V);
+            bool check = checkInsideTriangle(plane, intersectionPoint);
+            if(check && tt < t){
+                t = tt;
+                col = pyramids[i].color;
+                intersectingPoint = intersectionPoint;
+                amb=pyramids[i].amb;
+                dif=pyramids[i].dif;
+                spec=pyramids[i].spec;
+                refl=pyramids[i].reflect;
+                shininess = pyramids[i].shininess;
+                normal = plane.normal;
+            }
+        }
+    }
 
 
     /**************** check checkerboard **********************/
@@ -694,18 +821,87 @@ Color getColor(point start){
         point intersectionPoint = P + scale(tt, V);
         if(tt < t ){
             t = tt;
-            col = getCheckerboardCellColor(intersectionPoint);
+            if(checkerboardmode == 0) col = getCheckerboardCellColor(intersectionPoint);
+            else col = getTexturedCellColor(intersectionPoint);
+            intersectingPoint = intersectionPoint;
+            amb=ambientCheckerboard;
+            dif=diffuseCheckerboard;
+            spec=0;
+            refl=reflectionCheckerboard;
+            shininess=0;
+            normal.x = 0; normal.y=0;normal.z=1;
         }
+    }
+
+
+    /** farplane check **/
+    if(t == farDistance) {
+        Color c(0,0,0);
+        return c;
+    }
+
+
+//70.0 70.0 100.0 0.000002
+
+
+    /*** illumination starts here ***/
+    double lambert, phong;
+    lambert = 0;
+    phong = 0;
+
+
+
+    normal.normalize();
+    for(int i=0; i<numNormalLightSources; i++){
+        NormalLight normalLight = normalLights[i];
+        if(isBlockedbyObject(normalLight.pos, intersectingPoint)){
+            continue;
+        }
+        point reflectedRay = reflect(intersectingPoint-normalLight.pos, normal);
+        reflectedRay.normalize();
+        point toSource = normalLight.pos - intersectingPoint;
+        toSource.normalize();
+        double distance = magnitude(toSource);
+        double scalingFactor = exp(-distance*distance * normalLight.falloffParam);
+        lambert += (dot(toSource, normal)*scalingFactor);
+        phong += pow(dot(reflectedRay, toSource), shininess)*scalingFactor;
     }
 
 
 
 
+    for(int i=0; i<numSpotLightSources; i++){
+        SpotLight spotLight = spotLights[i];
+        if(isBlockedbyObject(spotLight.pos, intersectingPoint) ||
+            !inSpotLightRange(intersectingPoint-spotLight.pos, spotLight.lookingAt-spotLight.pos,spotLight.cutoffAngle)){
+            continue;
+        }
+        point reflectedRay = reflect(intersectingPoint-spotLight.pos, normal);
+        reflectedRay.normalize();
+        point toSource = spotLight.pos - intersectingPoint;
+        toSource.normalize();
+        double distance = magnitude(toSource);
+        double scalingFactor = exp(-distance*distance * spotLight.falloffParam);
+        lambert += (dot(toSource, normal)*scalingFactor);
+        phong += pow(dot(reflectedRay, toSource), shininess)*scalingFactor;
+    }
 
 
-//    if(magnitude(start +scale(t, direction)) > farDistance){
-//        col.r=0;col.g=0;col.b=0;
-//    }
+
+    double const safety = 0.01;
+    intersectingPoint.x += safety;
+    intersectingPoint.y += safety;
+    intersectingPoint.z += safety;
+
+    Color reflectedColors = getColor(intersectingPoint, reflect(intersectingPoint-start,normal), depth-1);
+
+    col.r = amb*col.r + dif*lambert*col.r + spec*phong*col.r
+    + refl*reflectedColors.r;
+    col.g = amb*col.g + dif*lambert*col.g + spec*phong*col.g
+    + refl*reflectedColors.g;
+    col.b = amb*col.b + dif*lambert*col.b + spec*phong*col.b
+    + refl*reflectedColors.b;
+
     return col;
 }
 
@@ -729,7 +925,7 @@ void createBitmapImage(){
     double frameHeight = 2 * nearDistance * tan((fovY/2)*(pi/180));
     double fovX = fovY * aspectRatio;
     double frameWidth = 2 * nearDistance * tan((fovX/2)*(pi/180));
-    point midPoint;
+
     midPoint.x = currentPosition.x + nearDistance*lVector.x;
     midPoint.y = currentPosition.y + nearDistance*lVector.y;
     midPoint.z = currentPosition.z + nearDistance*lVector.z;
@@ -769,7 +965,7 @@ void createBitmapImage(){
     for (int i = 0; i < screen_x; i++) {
         pixels[i] = new Color [screen_y];
         for (int j = 0; j < screen_y; j++) {
-            pixels[i][j] = getColor(pointBuffer[i][j]);
+            pixels[i][j] = getColor(pointBuffer[i][j], pointBuffer[i][j]-currentPosition, levelOfRecursion);
         }
     }
 
@@ -821,6 +1017,10 @@ void keyboardListener(unsigned char key, int x,int y){
 
 		case '1':
 			lookLeft();
+			break;
+
+        case ' ':
+			checkerboardmode ^=1;
 			break;
 
         case '2':
@@ -948,10 +1148,21 @@ void display(){
 	****************************/
 	//add objects
 //    drawAxes();
-    drawCheckerboard();
+    if(!checkerboardmode) drawCheckerboard();
     for(int i=0; i<spheres.size(); i++) spheres[i].drawSphere();
     for(int i=0; i<pyramids.size(); i++) pyramids[i].drawPyramid();
+    for(int i=0; i<normalLights.size(); i++){
+        Color c(1,0.5,0.5);
+        Sphere  light(normalLights[i].pos, 5, c,1,1,1,1,1);
+        light.drawSphere();
+    }
 
+
+    for(int i=0; i<spotLights.size(); i++){
+        Color c(1,1,1);
+        Sphere  light(spotLights[i].pos, 10, c,1,1,1,1,1);
+        light.drawSphere();
+    }
 
 	//ADD this line in the end --- if you use double buffer (i.e. GL_DOUBLE)
 	glutSwapBuffers();
@@ -973,7 +1184,7 @@ void init(){
 
     rotationAngle = 0.03;
     targetDistance = 305;
-
+    BOARD_SIZE = 30;
 
 
     /**
@@ -981,12 +1192,12 @@ void init(){
     and u,r,l vectors
     */
     // back view
-    currentPosition.x = 300;
-    currentPosition.y = 50;
+    currentPosition.x = 100;
+    currentPosition.y = 80;
     currentPosition.z = 50;
     uVector.x = 0, uVector.y = 0, uVector.z = 1;
-    rVector.x = 0, rVector.y = 1, rVector.z = 0;
-    lVector.x = -1, lVector.y = 0, lVector.z = 0;
+    rVector.x = -1/sqrt(2), rVector.y = 1/sqrt(2), rVector.z = 0;
+    lVector.x = -1/sqrt(2), lVector.y = -1/sqrt(2), lVector.z = 0;
 
 
 
@@ -1025,6 +1236,7 @@ void parseInput(){
     fin >> ambientCheckerboard >> diffuseCheckerboard >> reflectionCheckerboard;
     fin >> numObjects;
     checkerboarchCellWidth/=2;
+    screen_x = screen_y = numPixels;
     for(int i=0; i<numObjects ; i++){
         string object;
         fin >> object ;
@@ -1087,7 +1299,7 @@ void parseInput(){
 
 int main(int argc, char **argv){
 	glutInit(&argc,argv);
-	screen_x = screen_y = 768;
+	screen_x = screen_y = 500;
 	glutInitWindowSize(screen_x, screen_y);
 	glutInitWindowPosition(0, 0);
 	glutInitDisplayMode(GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGB);	//Depth, Double buffer, RGB color
@@ -1097,9 +1309,11 @@ int main(int argc, char **argv){
 
 
 
-
     parseInput();
 	init();
+    makeTexture();
+
+
 
 	glEnable(GL_DEPTH_TEST);	//enable Depth Testing
 
@@ -1114,4 +1328,5 @@ int main(int argc, char **argv){
 
 	return 0;
 }
+
 
